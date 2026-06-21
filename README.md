@@ -29,7 +29,7 @@ python -m examples.mcp_demo
 
 Example output:
 
-![PolyForge mcp-audit demo](assets/demo.svg)
+![PolyForge mcp-audit demo](assets/demo.gif)
 
 <!-- Static fallback for anyone who can't see the animation above -->
 
