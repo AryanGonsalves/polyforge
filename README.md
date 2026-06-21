@@ -12,7 +12,9 @@ and routes around them.
 ## Quick start (no credentials needed)
 
 ```bash
-pip install polyforge
+git clone https://github.com/AryanGonsalves/polyforge.git
+cd polyforge
+pip install -e .
 
 # Audit the MCP servers your agent depends on
 polyforge mcp-audit examples/mcp_servers.yaml
@@ -20,6 +22,10 @@ polyforge mcp-audit examples/mcp_servers.yaml
 # See audit + fallback routing end to end
 python -m examples.mcp_demo
 ```
+
+> **Note:** PolyForge isn't on PyPI yet, so install from source as shown above.
+> PyPI publishing is planned — once it's live, `pip install polyforge` will work
+> directly.
 
 Example output:
 
@@ -46,6 +52,9 @@ install, hosted uptime, and schema stability. Unknown signals are treated
 conservatively — unknown is never given credit.
 
 ## Library use
+
+Install from source first (see Quick start above); PyPI publishing is planned,
+after which `pip install polyforge` will work directly.
 
 ```python
 from datetime import date
