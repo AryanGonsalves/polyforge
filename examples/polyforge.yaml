@@ -1,0 +1,15 @@
+warn_within_days: 90
+
+# Models are tried in this order. First healthy one that responds wins.
+fallback:
+  - claude-3-opus-20240229      # deliberately stale, so `check` flags it
+  - claude-sonnet-4-6
+  - claude-haiku-4-5-20251001
+
+# Optional: extend/override the built-in deprecation snapshot with your own
+# (e.g. internal models). User entries win over built-ins.
+deprecations:
+  - model: internal-llm-v1
+    shutdown_date: 2026-12-31
+    replacement: internal-llm-v2
+    note: scheduled internal retirement

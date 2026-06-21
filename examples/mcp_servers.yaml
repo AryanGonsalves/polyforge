@@ -1,0 +1,38 @@
+# MCP servers your agent depends on, with observable health signals.
+# In a real setup these signals would be gathered from GitHub / status pages;
+# here they're declared so the auditor is fully reproducible.
+
+servers:
+  - name: mcp-server-postgres
+    last_commit: 2026-05-25
+    contributor_count: 12
+    ci_passing: true
+    open_unpatched_cve: false
+    clean_install: true
+    uptime_30d: 0.998
+    breaking_schema_change_90d: false
+
+  - name: mcp-weather-community
+    last_commit: 2026-04-10
+    contributor_count: 3
+    ci_passing: true
+    open_unpatched_cve: false
+    clean_install: true
+    breaking_schema_change_90d: false
+
+  - name: mcp-scraper-solo
+    last_commit: 2025-10-01
+    contributor_count: 1
+    ci_passing: false
+    open_unpatched_cve: true
+    clean_install: false
+    breaking_schema_change_90d: true
+
+# Capabilities map to an ordered list of servers; the router picks the first
+# usable one and skips dead servers.
+capabilities:
+  database:
+    - mcp-server-postgres
+  scraping:
+    - mcp-scraper-solo
+    - mcp-weather-community   # fallback if the solo scraper is dead
