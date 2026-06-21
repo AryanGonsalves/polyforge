@@ -29,6 +29,10 @@ python -m examples.mcp_demo
 
 Example output:
 
+![PolyForge mcp-audit demo](assets/demo.svg)
+
+<!-- Static fallback for anyone who can't see the animation above -->
+
 ```
   PRODUCTION  mcp-server-postgres  (8/9)
        LIGHT  mcp-weather-community  (6/9)   - last commit 70 days ago (>45)
