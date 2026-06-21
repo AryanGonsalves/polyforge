@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "polyforge"
+version = "0.1.0"
+description = "Audit MCP servers for reliability and route around dead ones, so a broken tool can't silently corrupt your AI agent."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Aryan Gonsalves" }]
+keywords = ["mcp", "ai-agents", "reliability", "developer-tools", "llm"]
+dependencies = ["pyyaml>=6"]
+
+[project.optional-dependencies]
+anthropic = ["anthropic>=0.40"]
+dev = ["pytest>=8"]
+
+[project.scripts]
+polyforge = "polyforge.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/AryanGonsalves/polyforge"
+Repository = "https://github.com/AryanGonsalves/polyforge"
+
+[tool.setuptools.packages.find]
+include = ["polyforge*"]
