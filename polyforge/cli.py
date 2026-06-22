@@ -4,6 +4,9 @@ PolyForge CLI.
 Usage:
     polyforge analyze <path>            Analyze a .py file or directory
     polyforge analyze <path> --json     Machine-readable output
+    polyforge mcp-audit <manifest>      Audit MCP servers from a YAML manifest
+    polyforge mcp-audit <manifest> --gather   Enrich entries (with a 'repo') from GitHub
+    polyforge mcp-gather <repo>         Fetch signals from a GitHub repo and score
     polyforge version
 
 Deterministic structural analysis (AST). No credentials or network needed.
@@ -25,12 +28,19 @@ def _iter_py_files(path: Path):
         yield from sorted(path.rglob("*.py"))
 
 
-def _mcp_audit(manifest_path: str) -> int:
-    """Audit MCP servers declared in a YAML manifest."""
+def _mcp_audit(manifest_path: str, gather: bool = False, token: str | None = None) -> int:
+    """Audit MCP servers declared in a YAML manifest.
+
+    With ``gather=True``, entries that declare a ``repo`` field have their
+    GitHub signals (commit recency, contributors, CI) fetched live and merged
+    over the YAML before scoring.
+    """
+    import os
+
     import yaml
 
     from polyforge.mcp.auditor import audit
-    from polyforge.mcp.scorer import ServerSignals
+    from polyforge.mcp.manifest import load_manifest_signals
 
     p = Path(manifest_path)
     if not p.exists():
@@ -42,23 +52,10 @@ def _mcp_audit(manifest_path: str) -> int:
         print("error: manifest has no 'servers'", file=sys.stderr)
         return 2
 
-    def _date(v):
-        from datetime import date as _d
-        return v if isinstance(v, _d) or v is None else _d.fromisoformat(str(v))
-
-    servers = [
-        ServerSignals(
-            name=r["name"],
-            last_commit=_date(r.get("last_commit")),
-            contributor_count=r.get("contributor_count"),
-            ci_passing=r.get("ci_passing"),
-            open_unpatched_cve=r.get("open_unpatched_cve"),
-            clean_install=r.get("clean_install"),
-            uptime_30d=r.get("uptime_30d"),
-            breaking_schema_change_90d=r.get("breaking_schema_change_90d"),
-        )
-        for r in raw
-    ]
+    token = token or os.environ.get("GITHUB_TOKEN")
+    servers, warnings = load_manifest_signals(raw, gather=gather, token=token)
+    for w in warnings:
+        print(f"  \033[33mwarning\033[0m  {w}", file=sys.stderr)
 
     report = audit(servers)
     color = {"production": "32", "light": "33", "dead": "31"}
@@ -73,6 +70,33 @@ def _mcp_audit(manifest_path: str) -> int:
     print(f"\n{len(report.production)} production, {len(report.needs_fallback)} "
           f"need fallback, {dead} dead.")
     return 1 if dead else 0
+
+
+def _mcp_gather(repo: str, token: str | None) -> int:
+    """Auto-gather signals for one MCP server from GitHub, then score it."""
+    import os
+
+    from polyforge.mcp.github_gather import GitHubGatherError, gather_from_github
+    from polyforge.mcp.scorer import score_server
+
+    token = token or os.environ.get("GITHUB_TOKEN")
+    try:
+        signals = gather_from_github(repo, token=token)
+    except GitHubGatherError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
+
+    r = score_server(signals)
+    color = {"production": "32", "light": "33", "dead": "31"}
+    c = color[r.health.value]
+    print(f"  \033[{c}m{r.health.value.upper():>10}\033[0m  {r.name}  "
+          f"({r.score}/{r.max_score})")
+    for reason in r.reasons:
+        print(f"               - {reason}")
+    print("\nSignals auto-gathered from GitHub: last_commit, contributor_count, "
+          "ci_passing.\nOther signals are unknown (no credit) — provide them via "
+          "YAML and merge to get a full score.")
+    return 1 if r.health.value == "dead" else 0
 
 
 def _check(models_csv: str | None, config_path: str | None) -> int:
@@ -194,6 +218,16 @@ def main(argv: list[str] | None = None) -> int:
 
     m = sub.add_parser("mcp-audit", help="Audit MCP servers from a YAML manifest")
     m.add_argument("manifest", help="Path to an MCP servers manifest (YAML)")
+    m.add_argument("--gather", action="store_true",
+                   help="Auto-fetch GitHub signals for entries that declare a 'repo'")
+    m.add_argument("--token", default=None,
+                   help="GitHub token (or set GITHUB_TOKEN) for --gather")
+
+    g = sub.add_parser("mcp-gather",
+                       help="Fetch signals from a GitHub repo and score one server")
+    g.add_argument("repo", help="GitHub repo URL or owner/repo shorthand")
+    g.add_argument("--token", default=None,
+                   help="GitHub token (or set GITHUB_TOKEN) to raise rate limits")
 
     sub.add_parser("version", help="Print version")
 
@@ -211,7 +245,9 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         return _check(args.models, args.config)
     if args.command == "mcp-audit":
-        return _mcp_audit(args.manifest)
+        return _mcp_audit(args.manifest, args.gather, args.token)
+    if args.command == "mcp-gather":
+        return _mcp_gather(args.repo, args.token)
     return 1
 
 
