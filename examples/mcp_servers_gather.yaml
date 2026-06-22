@@ -1,0 +1,24 @@
+# Manifest demonstrating --gather (auto-fetch GitHub signals).
+#
+#   polyforge mcp-audit examples/mcp_servers_gather.yaml            # YAML only
+#   polyforge mcp-audit examples/mcp_servers_gather.yaml --gather   # + live GitHub
+#
+# With --gather, each entry that declares a `repo` has its commit recency,
+# contributor count, and CI status fetched live from GitHub and merged OVER the
+# YAML (live data wins). The YAML supplies the signals GitHub can't give us
+# (CVE status, clean install, hosted uptime, schema stability). Set a
+# GITHUB_TOKEN (or pass --token) to avoid API rate limits. If a repo can't be
+# fetched, that entry falls back to its YAML signals with a warning.
+servers:
+  - name: polyforge-itself
+    repo: AryanGonsalves/polyforge
+    open_unpatched_cve: false
+    clean_install: true
+    breaking_schema_change_90d: false
+
+  - name: requests-lib
+    repo: psf/requests
+    open_unpatched_cve: false
+    clean_install: true
+    uptime_30d: 0.999
+    breaking_schema_change_90d: false
