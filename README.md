@@ -55,6 +55,28 @@ the highest-signal abandonment indicator), CI status, unpatched CVEs, clean
 install, hosted uptime, and schema stability. Unknown signals are treated
 conservatively — unknown is never given credit.
 
+## Auto-gather signals from GitHub
+
+Instead of hand-writing every signal, PolyForge can fetch the cheap, high-signal
+ones — last commit date, contributor count, and CI status — straight from a
+repo on GitHub:
+
+```bash
+# Score a single server straight from its repo
+polyforge mcp-gather owner/repo
+
+# Audit a whole manifest, enriching any entry that declares a `repo:`
+polyforge mcp-audit examples/mcp_servers_gather.yaml --gather
+```
+
+Gathered signals are merged *over* the YAML (live data wins; the YAML still
+supplies what GitHub can't — CVE status, clean install, hosted uptime, schema
+stability). Because unknown signals get no credit, the three auto-gathered
+signals alone won't reach a passing score — pair them with a YAML entry. Set
+`GITHUB_TOKEN` (or pass `--token`) to avoid API rate limits. If a repo can't be
+fetched, that entry falls back to its YAML signals with a warning rather than
+failing the whole audit.
+
 ## Library use
 
 Install from source first (see Quick start above); PyPI publishing is planned,
@@ -93,8 +115,10 @@ the gateway's registry/status/fallback pattern there.
 
 ## Honest limits (current phase)
 
-- Signals are provided to the scorer; automatic gathering from GitHub / status
-  pages is the next phase (the scorer stays deterministic and testable this way).
+- Commit recency, contributor count, and CI status can be auto-gathered from
+  GitHub (`mcp-gather` / `mcp-audit --gather`); the remaining signals (CVE, clean
+  install, uptime, schema stability) are still supplied via YAML. Gathering is
+  kept separate from scoring, so the scorer stays deterministic and testable.
 - The rubric weights are a sensible default, not yet validated against a large
   labeled set of real servers.
 - Fallback routing resolves the best server; it does not yet execute MCP calls.
@@ -109,9 +133,8 @@ before building further.
 ## Roadmap
 
 1. **Now:** scorer, auditor, fallback router, CLI, manifest ✔
-2. Auto-gather signals from GitHub API (commits, contributors, CI)
+2. **Done:** auto-gather commit recency, contributors & CI from GitHub
+   (`mcp-gather`, `mcp-audit --gather`) ✔ — auto-gathering CVE/uptime/schema is future work
 3. GitHub Action: fail a PR that wires in a dead MCP server
 4. Live MCP call execution through the fallback router
 5. Hosted registry of community-scored servers
-
-
